@@ -1,0 +1,60 @@
+plugins {
+    id 'groovy'
+    id 'java'
+}
+
+version = '1.0.0'
+defaultTasks 'clean', 'build'
+apply plugin: 'java'
+apply plugin: 'groovy'
+apply plugin: 'idea'
+sourceCompatibility = 1.8
+ext.rundeckPluginVersion= '2.0'
+ext.rundeckVersion= '3.3.x'
+ext.pluginClassNames='com.lorenjamison.rundeck.RundeckExecutionLimiterPlugin'
+
+
+repositories {
+    mavenLocal()
+    mavenCentral()
+}
+
+configurations{
+    //declare custom pluginLibs configuration to include only libs for this plugin
+    pluginLibs
+
+    //declare compile to extend from pluginLibs so it inherits the dependencies
+    compile{
+        extendsFrom pluginLibs
+    }
+}
+
+dependencies {
+    compile 'org.rundeck:rundeck-core:3.3.2-20200817'
+    compile 'org.codehaus.groovy:groovy-all:3.0.5'
+}
+
+task copyToLib(type: Copy) {
+    into "$buildDir/output/lib"
+    from configurations.pluginLibs
+}
+
+jar {
+    from "$buildDir/output"
+    manifest {
+        def libList = configurations.pluginLibs.collect{'lib/'+it.name}.join(' ')
+
+        attributes 'Rundeck-Plugin-Classnames': pluginClassNames
+        attributes 'Rundeck-Plugin-File-Version': version
+        attributes 'Rundeck-Plugin-Name': 'Rundeck Execution Group Plugin'
+        attributes 'Rundeck-Plugin-Description': 'Rundeck plugin to make job executions wait on other executions to complete'
+        attributes 'Rundeck-Plugin-Rundeck-Compatibility-Version': '3.x'
+        attributes 'Rundeck-Plugin-Tags': 'java,ExecutionLifecycle'
+        attributes 'Rundeck-Plugin-Target-Host-Compatibility': 'all'
+        attributes 'Rundeck-Plugin-Version': rundeckPluginVersion
+        attributes 'Rundeck-Plugin-Archive': 'true'
+        attributes 'Rundeck-Plugin-Libs': "${libList}"
+
+    }
+    dependsOn(copyToLib)
+}
